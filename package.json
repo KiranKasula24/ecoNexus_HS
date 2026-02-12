@@ -11,6 +11,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.95.0",
     "compromise": "^14.14.5",
+    "flowbite": "^4.0.1",
+    "flowbite-react": "^0.12.17",
     "next": "16.1.6",
     "pdf-parse": "^2.4.5",
     "qrcode": "^1.5.4",

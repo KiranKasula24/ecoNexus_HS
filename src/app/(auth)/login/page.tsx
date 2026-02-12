@@ -32,92 +32,104 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
+  <section className="bg-gray-900 min-h-screen flex items-center justify-center px-4">
+    <div className="w-full max-w-md bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-8 space-y-6">
+
+      <h1 className="text-2xl font-bold text-white">
+        Sign in to your account
+      </h1>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+
+        {/* Email */}
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to EcoNexus
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Access your AI agent and circular economy dashboard
-          </p>
+          <label
+            htmlFor="email"
+            className="block mb-2 text-sm font-medium text-gray-300"
+          >
+            Your email
+          </label>
+          <input
+            type="email"
+            id="email"
+            required
+            value={formData.email}
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
+            }
+            placeholder="name@company.com"
+            className="w-full p-2.5 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+          />
         </div>
 
-        {/* Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
+        {/* Password */}
+        <div>
+          <label
+            htmlFor="password"
+            className="block mb-2 text-sm font-medium text-gray-300"
+          >
+            Password
+          </label>
+          <input
+            type="password"
+            id="password"
+            required
+            value={formData.password}
+            onChange={(e) =>
+              setFormData({ ...formData, password: e.target.value })
+            }
+            placeholder="••••••••"
+            className="w-full p-2.5 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+          />
+        </div>
 
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="you@company.com"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        {/* Remember + Forgot */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input
+              id="remember"
+              type="checkbox"
+              className="w-4 h-4 bg-gray-700 border border-gray-600 rounded focus:ring-2 focus:ring-green-500"
+            />
+            <label
+              htmlFor="remember"
+              className="ml-2 text-sm text-gray-400"
             >
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
+              Remember me
+            </label>
           </div>
 
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <Link
-                href="/register"
-                className="font-medium text-blue-600 hover:text-blue-500"
-              >
-                Register now
-              </Link>
-            </p>
-          </div>
-        </form>
-      </div>
+          <a
+            href="#"
+            className="text-sm font-medium text-green-500 hover:underline"
+          >
+            Forgot password?
+          </a>
+        </div>
+
+        {/* Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition disabled:opacity-60"
+        >
+          {loading ? "Signing in..." : "Sign in"}
+        </button>
+
+        <p className="text-sm text-gray-400">
+          Don’t have an account yet?{" "}
+          <Link
+            href="/register"
+            className="text-green-500 hover:underline font-medium"
+          >
+            Sign up
+          </Link>
+        </p>
+
+      </form>
     </div>
-  );
+  </section>
+);
+
+
 }
