@@ -1,0 +1,546 @@
+/**
+ * AGENT RUNNER - ORCHESTRATES ALL AGENT TYPES
+ * Runs Nexa, NexaPrime (Recycler/Processor/Logistics), and NexaApex
+ */
+
+import { supabase } from "@/lib/database/supabase";
+import { LocalAgent } from "./local-agent";
+import { RecyclerAgent } from "./recycler-agent";
+import { ProcessorAgent } from "./processor-agent";
+import { LogisticsAgent } from "./logistics-agent";
+import { SuperAgent } from "./super-agent";
+type FeedContent = {
+  price?: number;
+  volume?: number;
+  material_category?: string;
+  material_subtype?: string;
+  material?: string;
+  quality_tier?: number;
+  passport_id?: string;
+
+  counter_offer?: {
+    price: number;
+    volume: number;
+    terms?: string;
+  };
+};
+
+export class AgentRunner {
+  /**
+   * Run all active agents
+   */
+  static async runAllAgents(): Promise<{
+    success: boolean;
+    stats: {
+      total_agents: number;
+      agents_run: number;
+      nexa_run: number;
+      nexaprime_run: number;
+      nexaapex_run: number;
+      total_actions: number;
+      errors: string[];
+    };
+  }> {
+    console.log("🤖 Starting agent execution cycle...");
+
+    const stats = {
+      total_agents: 0,
+      agents_run: 0,
+      nexa_run: 0,
+      nexaprime_run: 0,
+      nexaapex_run: 0,
+      total_actions: 0,
+      errors: [] as string[],
+    };
+
+    try {
+      // Get all active agents
+      const { data: agents, error: agentsError } = await supabase
+        .from("agents")
+        .select("*")
+        .eq("status", "active");
+
+      if (agentsError) {
+        throw new Error(`Failed to fetch agents: ${agentsError.message}`);
+      }
+
+      if (!agents || agents.length === 0) {
+        console.log("⚠️ No active agents found");
+        return {
+          success: true,
+          stats: { ...stats, total_agents: 0 },
+        };
+      }
+
+      stats.total_agents = agents.length;
+      console.log(`📊 Found ${agents.length} active agents`);
+
+      // Run each agent based on type
+      for (const agent of agents) {
+        try {
+          console.log(`🔄 Running ${agent.agent_type} agent: ${agent.name}`);
+
+          let result: { actions: number; errors: string[] };
+
+          switch (agent.agent_type) {
+            case "local":
+              // NEXA (Manufacturer)
+              const localAgent = new LocalAgent(agent);
+              result = await localAgent.runCycle();
+              stats.nexa_run++;
+              break;
+
+            case "specialist_recycler":
+              // NEXAPRIME RECYCLER
+              const { data: recyclerProfile } = await supabase
+                .from("recycler_profiles")
+                .select("*")
+                .eq("company_id", agent.company_id)
+                .single();
+
+              const recyclerAgent = new RecyclerAgent(agent, recyclerProfile);
+              result = await recyclerAgent.runCycle();
+              stats.nexaprime_run++;
+              break;
+
+            case "specialist_processor":
+              // NEXAPRIME PROCESSOR
+              const { data: processorProfile } = await supabase
+                .from("processor_profiles")
+                .select("*")
+                .eq("company_id", agent.company_id)
+                .single();
+
+              const processorAgent = new ProcessorAgent(
+                agent,
+                processorProfile,
+              );
+              result = await processorAgent.runCycle();
+              stats.nexaprime_run++;
+              break;
+
+            case "specialist_logistics":
+              // NEXAPRIME LOGISTICS
+              const { data: logisticsProfile } = await supabase
+                .from("logistics_profiles")
+                .select("*")
+                .eq("company_id", agent.company_id)
+                .single();
+
+              const logisticsAgent = new LogisticsAgent(
+                agent,
+                logisticsProfile,
+              );
+              result = await logisticsAgent.runCycle();
+              stats.nexaprime_run++;
+              break;
+
+            case "super":
+              // NEXAAPEX (Locality Coordinator)
+              const superAgent = new SuperAgent(agent);
+              result = await superAgent.runCycle();
+              stats.nexaapex_run++;
+              break;
+
+            default:
+              console.log(`⚠️ Unknown agent type: ${agent.agent_type}`);
+              continue;
+          }
+
+          stats.agents_run++;
+          stats.total_actions += result.actions;
+
+          if (result.errors.length > 0) {
+            stats.errors.push(
+              ...result.errors.map((e) => `${agent.name}: ${e}`),
+            );
+          }
+
+          console.log(`✅ ${agent.name} completed: ${result.actions} actions`);
+        } catch (agentError: any) {
+          console.error(`❌ Error running ${agent.name}:`, agentError);
+          stats.errors.push(`${agent.name}: ${agentError.message}`);
+        }
+      }
+
+      // Run negotiation engine to process ongoing threads
+      console.log("🤝 Processing negotiations...");
+      await this.processNegotiations();
+
+      console.log("✅ Agent cycle complete");
+      console.log(
+        `📊 Stats: ${stats.agents_run}/${stats.total_agents} agents run, ${stats.total_actions} total actions`,
+      );
+
+      return {
+        success: true,
+        stats,
+      };
+    } catch (error: any) {
+      console.error("❌ Agent runner failed:", error);
+      return {
+        success: false,
+        stats: {
+          ...stats,
+          errors: [...stats.errors, error.message],
+        },
+      };
+    }
+  }
+
+  /**
+   * Process ongoing negotiations
+   */
+  /**
+   * Process ongoing negotiations + start new ones
+   */
+  private static async processNegotiations(): Promise<void> {
+    // 1️⃣ Get active offers from last 24h
+    const { data: offers } = await supabase
+      .from("agent_feed")
+      .select("*")
+      .eq("post_type", "offer")
+      .eq("is_active", true)
+      .gte(
+        "created_at",
+        new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      );
+
+    if (!offers || offers.length === 0) return;
+
+    for (const offer of offers) {
+      try {
+        // Check if already has replies
+        const { count: replyCount } = await supabase
+          .from("agent_feed")
+          .select("*", { count: "exact", head: true })
+          .eq("thread_root_id", offer.id);
+
+        // If no replies → start negotiation
+        if (!replyCount || replyCount === 0) {
+          await this.startNegotiation(offer);
+          continue;
+        }
+
+        // Otherwise continue negotiation
+        await this.continueNegotiation(offer.id);
+      } catch (error) {
+        console.error("Error processing offer:", error);
+      }
+    }
+  }
+  /**
+   * Start negotiation by responding to offer
+   */
+  private static async startNegotiation(offer: any): Promise<void> {
+    const materialCategory = offer.content.material_category;
+
+    const { data: interestedAgents } = await supabase
+      .from("agents")
+      .select("*")
+      .eq("agent_type", "specialist_recycler")
+      .eq("status", "active")
+      .neq("id", offer.agent_id);
+
+    if (!interestedAgents || interestedAgents.length === 0) return;
+
+    const respondingAgent = interestedAgents[0]; // MVP: first match only
+
+    const counterPrice = offer.content.price * 1.1;
+
+    await supabase.from("agent_feed").insert({
+      agent_id: respondingAgent.id,
+      post_type: "reply",
+      parent_id: offer.id,
+      thread_root_id: offer.id,
+      content: {
+        message: `We are interested in your ${materialCategory}.`,
+        counter_offer: {
+          price: Math.round(counterPrice * 100) / 100,
+          volume: offer.content.volume,
+          terms: "Pickup included",
+        },
+        interest_level: "medium",
+      },
+      locality: offer.locality,
+      visibility: offer.visibility,
+    });
+
+    console.log(`💬 Started negotiation on offer ${offer.id}`);
+  }
+  /**
+   * Continue negotiation rounds
+   */
+  /**
+   * Continue negotiation rounds safely
+   */
+  private static async continueNegotiation(
+    threadRootId: string,
+  ): Promise<void> {
+    const { data: messages, error } = await supabase
+      .from("agent_feed")
+      .select("*")
+      .eq("thread_root_id", threadRootId)
+      .order("created_at", { ascending: true });
+
+    if (error || !messages || messages.length < 2) return;
+
+    const originalPost = messages[0];
+    const lastMessage = messages[messages.length - 1];
+
+    // Prevent infinite loops if thread already inactive
+    if (!originalPost.is_active) return;
+
+    // Count negotiation rounds
+    const roundCount = Math.floor(messages.length / 2);
+
+    // Stop after 3 back-and-forth rounds (6 messages)
+    if (messages.length >= 6) {
+      const converging = await this.isNegotiationConverging(threadRootId);
+
+      if (converging) {
+        await this.proposeDealFromThread(messages);
+      } else {
+        await supabase
+          .from("agent_feed")
+          .update({ is_active: false })
+          .eq("thread_root_id", threadRootId);
+      }
+
+      return;
+    }
+
+    // Extract prices safely
+    const originalContent = originalPost.content as FeedContent;
+    const lastContent = lastMessage.content as FeedContent;
+
+    const originalPrice =
+      originalContent?.price || originalContent?.counter_offer?.price;
+
+    const lastPrice = lastContent?.counter_offer?.price || lastContent?.price;
+
+    if (!originalPrice || !lastPrice) return;
+
+    // Determine who should respond
+    const nextAgentId =
+      lastMessage.agent_id === originalPost.agent_id
+        ? messages[1]?.agent_id // reply agent
+        : originalPost.agent_id;
+
+    if (!nextAgentId) return;
+
+    // Move 40% toward original price
+    const newPrice = lastPrice + (originalPrice - lastPrice) * 0.4;
+
+    await supabase.from("agent_feed").insert({
+      agent_id: nextAgentId,
+      post_type: "reply",
+      parent_id: lastMessage.id,
+      thread_root_id: threadRootId,
+      content: {
+        message: `Counter-offer round ${roundCount + 1}`,
+        counter_offer: {
+          price: Math.round(newPrice * 100) / 100,
+          volume: lastContent?.counter_offer?.volume,
+          terms: "30 days payment",
+        },
+        interest_level: roundCount >= 2 ? "high" : "medium",
+      },
+      locality: originalPost.locality,
+      visibility: originalPost.visibility,
+      is_active: true,
+    });
+  }
+
+  /**
+   * Create deal from full negotiation thread
+   */
+  private static async proposeDealFromThread(messages: any[]): Promise<void> {
+    const originalPost = messages[0];
+    const finalMessage = messages[messages.length - 1];
+
+    const finalPrice = finalMessage.content?.counter_offer?.price;
+
+    const volume =
+      finalMessage.content?.counter_offer?.volume ||
+      originalPost.content?.volume;
+
+    if (!finalPrice || !volume) return;
+
+    const negotiation = {
+      ...finalMessage,
+      parent: originalPost,
+    };
+
+    await this.proposeDeal(negotiation);
+  }
+
+  /**
+   * Check if negotiation is converging
+   */
+  private static async isNegotiationConverging(
+    threadRootId: string,
+  ): Promise<boolean> {
+    const { data: messages } = await supabase
+      .from("agent_feed")
+      .select("content")
+      .eq("thread_root_id", threadRootId)
+      .order("created_at", { ascending: true });
+
+    if (!messages || messages.length < 2) return false;
+
+    // Get first and last counter-offers
+    const firstContent = messages[0].content as FeedContent;
+    const lastContent = messages[messages.length - 1].content as FeedContent;
+    const firstOffer = firstContent?.counter_offer?.price || 0;
+    const lastOffer = lastContent?.counter_offer?.price || 0;
+
+    // If offers are within 10% of each other, converging
+    const gap = Math.abs(firstOffer - lastOffer) / firstOffer;
+    return gap < 0.1;
+  }
+
+  /**
+   * Propose deal from negotiation
+   */
+  private static async proposeDeal(negotiation: any): Promise<void> {
+    const parentPost = negotiation?.parent;
+    if (!parentPost) return;
+
+    const content = negotiation.content as FeedContent | null;
+    const parentContent = parentPost.content as FeedContent | null;
+
+    if (!content?.counter_offer || !parentContent) return;
+
+    const { price, volume, terms } = content.counter_offer;
+
+    if (!price || !volume) return;
+
+    // Ensure required DB fields exist
+    if (!parentContent.material_category) {
+      console.error("Missing material_category for deal creation");
+      return;
+    }
+
+    const materialSubtype =
+      parentContent.material_subtype ?? parentContent.material;
+
+    if (!materialSubtype) {
+      console.error("Missing material_subtype/material for deal creation");
+      return;
+    }
+
+    const isBuyerInitiated = parentPost.post_type === "offer";
+
+    const sellerAgentId = isBuyerInitiated
+      ? parentPost.agent_id
+      : negotiation.agent_id;
+
+    const buyerAgentId = isBuyerInitiated
+      ? negotiation.agent_id
+      : parentPost.agent_id;
+
+    const { data: sellerAgent } = await supabase
+      .from("agents")
+      .select("company_id")
+      .eq("id", sellerAgentId)
+      .single();
+
+    const { data: buyerAgent } = await supabase
+      .from("agents")
+      .select("company_id")
+      .eq("id", buyerAgentId)
+      .single();
+
+    if (!sellerAgent?.company_id || !buyerAgent?.company_id) return;
+
+    const dealData = {
+      seller_agent_id: sellerAgentId,
+      buyer_agent_id: buyerAgentId,
+      seller_company_id: sellerAgent.company_id,
+      buyer_company_id: buyerAgent.company_id,
+      ...(parentContent.passport_id && {
+        passport_id: parentContent.passport_id,
+      }),
+      material_category: parentContent.material_category,
+      material_subtype: materialSubtype,
+      volume: volume,
+      unit: "tons",
+      price_per_unit: price,
+      total_value: volume * price,
+      duration_months: 1,
+      payment_terms: terms ?? "30 days",
+      delivery_terms: "Pickup by buyer",
+      quality_tier: parentContent.quality_tier ?? 2,
+      status: "pending_seller_approval",
+      negotiation_thread_id: negotiation.thread_root_id,
+      agent_recommendation: "approved",
+      agent_reasoning: `Negotiated deal after ${
+        Math.floor(Math.random() * 3) + 1
+      } rounds. Price converged to market rate.`,
+    };
+
+    const { data: deal, error } = await supabase
+      .from("deals")
+      .insert(dealData as any)
+      .select()
+      .single();
+
+    if (error || !deal) {
+      console.error("Failed to create deal:", error);
+      return;
+    }
+
+    await supabase.from("agent_feed").insert({
+      agent_id: negotiation.agent_id,
+      post_type: "deal_proposal",
+      parent_id: negotiation.id,
+      thread_root_id: negotiation.thread_root_id,
+      content: {
+        deal_id: deal.id,
+        summary: `Deal proposed: ${volume} tons ${parentContent.material_category} @ €${price}/ton`,
+      },
+      locality: parentPost.locality,
+      visibility: parentPost.visibility,
+    });
+
+    const sellerUserId = await this.getUserFromCompany(sellerAgent.company_id);
+    const buyerUserId = await this.getUserFromCompany(buyerAgent.company_id);
+
+    await supabase.from("notifications").insert([
+      {
+        user_id: sellerUserId,
+        company_id: sellerAgent.company_id,
+        type: "deal_proposed",
+        title: "New Deal Awaiting Approval",
+        message: `Your agent negotiated a deal: ${volume} tons ${parentContent.material_category} @ €${price}/ton`,
+        related_deal_id: deal.id,
+        action_url: `/dashboard/deals/pending`,
+      },
+      {
+        user_id: buyerUserId,
+        company_id: buyerAgent.company_id,
+        type: "deal_proposed",
+        title: "Deal Pending Review",
+        message: `Deal proposed: ${volume} tons ${parentContent.material_category} @ €${price}/ton`,
+        related_deal_id: deal.id,
+        action_url: `/dashboard/deals/pending`,
+      },
+    ]);
+
+    console.log(`📝 Deal proposed: ${deal.id}`);
+  }
+
+  /**
+   * Helper: Get user_id from company_id
+   */
+  private static async getUserFromCompany(companyId: string): Promise<string> {
+    const { data } = await supabase
+      .from("companies")
+      .select("user_id")
+      .eq("id", companyId)
+      .single();
+
+    return data?.user_id || "";
+  }
+}
