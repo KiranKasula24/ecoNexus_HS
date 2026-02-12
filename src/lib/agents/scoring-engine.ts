@@ -28,6 +28,8 @@ export class ScoringEngine {
    */
   static scoreDeal(params: {
     material_category: string;
+    material_subtype?: string;
+    material_id?: string;
     volume: number;
     price: number;
     quality_tier: number;
@@ -46,7 +48,10 @@ export class ScoringEngine {
     const reasoning: string[] = [];
 
     // Get material reference data
-    const materialProps = getMaterialProperties(params.material_category);
+    const materialProps =
+      getMaterialProperties(params.material_id || "") ||
+      getMaterialProperties(params.material_subtype || "") ||
+      getMaterialProperties(params.material_category);
     const marketPrice = materialProps?.market_price?.average || 100;
 
     // PRICE SCORE (35% weight)
@@ -69,13 +74,14 @@ export class ScoringEngine {
     }
 
     // QUALITY SCORE (25% weight)
-    const qualityScore = (5 - params.quality_tier) * 6.25;
+    const normalizedTier = Math.min(4, Math.max(1, params.quality_tier || 2));
+    const qualityScore = (5 - normalizedTier) * 6.25;
     breakdown.quality_score = qualityScore;
-    if (params.quality_tier === 1) {
+    if (normalizedTier === 1) {
       reasoning.push("Premium quality (Tier 1)");
-    } else if (params.quality_tier === 2) {
+    } else if (normalizedTier === 2) {
       reasoning.push("Good quality (Tier 2)");
-    } else if (params.quality_tier === 3) {
+    } else if (normalizedTier === 3) {
       reasoning.push("Acceptable quality (Tier 3)");
     } else {
       reasoning.push("Lower quality (Tier 4)");
@@ -132,7 +138,7 @@ export class ScoringEngine {
     }
 
     // Quality risk
-    if (params.quality_tier >= 3) {
+    if (normalizedTier >= 3) {
       riskScore -= 2;
       reasoning.push("Lower quality tier increases processing risk");
     }

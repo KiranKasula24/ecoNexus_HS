@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "@/lib/database/supabase";
+import { getMaterialProperties } from "@/lib/constants/material-database";
 
 export class ProcessorAgent {
   private agentId: string;
@@ -100,15 +101,22 @@ export class ProcessorAgent {
    * BACKWARDS CHAINING: Find what buyers want
    */
   private async findBuyerDemand(): Promise<any[]> {
-    // Find buy requests for our output materials
     const { data: buyRequests } = await supabase
       .from("agent_feed")
       .select("*")
       .eq("post_type", "request")
-      .eq("is_active", true)
-      .in("content->material_category", this.profile.output_materials);
+      .eq("is_active", true);
 
-    return buyRequests || [];
+    return (buyRequests || []).filter((req) => {
+      const content = (req.content || {}) as any;
+      const key =
+        content.material_id ||
+        content.sku ||
+        content.material_subtype ||
+        content.material_category ||
+        "";
+      return this.isOutputCompatible(key);
+    });
   }
 
   /**
@@ -118,7 +126,12 @@ export class ProcessorAgent {
     let sourced = 0;
 
     for (const demand of buyerDemands) {
-      const outputNeeded = demand.content.material_category;
+      const demandContent = (demand.content || {}) as any;
+      const outputNeeded =
+        demandContent.material_id ||
+        demandContent.sku ||
+        demandContent.material_subtype ||
+        demandContent.material_category;
 
       // Find what input we need to produce this output
       // Simple mapping: assume 1:1 for MVP (e.g., plastic-scrap → recycled-plastic)
@@ -133,10 +146,16 @@ export class ProcessorAgent {
         .from("agent_feed")
         .select("*")
         .eq("post_type", "offer")
-        .eq("is_active", true)
-        .contains("content", { material_category: inputNeeded });
+        .eq("is_active", true);
 
-      if (inputOffers && inputOffers.length > 0) {
+      const matchingOffers = (inputOffers || []).filter((offer) => {
+        const c = (offer.content || {}) as any;
+        const key =
+          c.material_id || c.sku || c.material_subtype || c.material_category;
+        return this.isInputCompatible(key, inputNeeded);
+      });
+
+      if (matchingOffers.length > 0) {
         // Found matching input! Mark for three-way deal
         sourced++;
       }
@@ -154,22 +173,31 @@ export class ProcessorAgent {
 
     let dealsProposed = 0;
 
-    // Find all active buy requests that match our output
     const { data: buyRequests } = await supabase
       .from("agent_feed")
       .select("*")
       .eq("post_type", "request")
-      .eq("is_active", true)
-      .in("content->material_category", this.profile.output_materials);
+      .eq("is_active", true);
 
-    if (!buyRequests || buyRequests.length === 0) {
+    const compatibleBuyRequests = (buyRequests || []).filter((req) => {
+      const c = (req.content || {}) as any;
+      const key =
+        c.material_id || c.sku || c.material_subtype || c.material_category;
+      return this.isOutputCompatible(key);
+    });
+
+    if (compatibleBuyRequests.length === 0) {
       console.log("No buyer demand found");
       return 0;
     }
 
-    for (const buyRequest of buyRequests) {
+    for (const buyRequest of compatibleBuyRequests) {
       const buyerContent = buyRequest.content as any;
-      const outputNeeded = buyerContent.material_category;
+      const outputNeeded =
+        buyerContent.material_id ||
+        buyerContent.sku ||
+        buyerContent.material_subtype ||
+        buyerContent.material_category;
       const volumeNeeded = buyerContent.volume_needed;
 
       // Determine what input we need to create this output
@@ -185,16 +213,22 @@ export class ProcessorAgent {
         .from("agent_feed")
         .select("*, agent:agent_id(company_id)")
         .eq("post_type", "offer")
-        .eq("is_active", true)
-        .contains("content", { material_category: inputMaterial });
+        .eq("is_active", true);
 
-      if (!inputOffers || inputOffers.length === 0) {
+      const filteredInputOffers = (inputOffers || []).filter((offer) => {
+        const c = (offer.content || {}) as any;
+        const key =
+          c.material_id || c.sku || c.material_subtype || c.material_category;
+        return this.isInputCompatible(key, inputMaterial);
+      });
+
+      if (filteredInputOffers.length === 0) {
         console.log(`No suppliers found for input: ${inputMaterial}`);
         continue;
       }
 
       // Take best supplier (lowest price)
-      const bestSupplier = inputOffers.sort(
+      const bestSupplier = filteredInputOffers.sort(
         (a, b) => (a.content as any).price - (b.content as any).price,
       )[0];
 
@@ -276,6 +310,9 @@ export class ProcessorAgent {
    * Map output material to required input material
    */
   private mapOutputToInput(outputMaterial: string): string | null {
+    if (!outputMaterial) return null;
+    const key = outputMaterial.toLowerCase();
+
     // Simple mapping rules (expand as needed)
     const mappings: Record<string, string> = {
       "recycled-plastic": "plastic-scrap",
@@ -288,13 +325,41 @@ export class ProcessorAgent {
     };
 
     // Check direct mapping
-    if (mappings[outputMaterial]) {
-      return mappings[outputMaterial];
+    if (mappings[key]) {
+      return mappings[key];
+    }
+
+    // Generic recycled-X -> X-scrap fallback
+    if (key.startsWith("recycled-")) {
+      const root = key.replace(/^recycled-/, "");
+      const inferred = (this.profile.input_materials || []).find((input: string) =>
+        input.toLowerCase().includes(root),
+      );
+      if (inferred) return inferred;
+      return `${root}-scrap`;
+    }
+
+    // Material taxonomy assisted fallback
+    const props = getMaterialProperties(outputMaterial);
+    if (props) {
+      const subtypeInput = (this.profile.input_materials || []).find(
+        (input: string) =>
+          input.toLowerCase().includes(props.subtype.toLowerCase()) ||
+          props.subtype.toLowerCase().includes(input.toLowerCase()),
+      );
+      if (subtypeInput) return subtypeInput;
+
+      const categoryInput = (this.profile.input_materials || []).find(
+        (input: string) =>
+          input.toLowerCase().includes(props.category.toLowerCase()) ||
+          props.category.toLowerCase().includes(input.toLowerCase()),
+      );
+      if (categoryInput) return categoryInput;
     }
 
     // Check if we can process any input that creates this output
-    for (const input of this.profile.input_materials) {
-      for (const output of this.profile.output_materials) {
+    for (const input of this.profile.input_materials || []) {
+      for (const output of this.profile.output_materials || []) {
         if (
           output.includes(outputMaterial) ||
           outputMaterial.includes(output)
@@ -305,6 +370,22 @@ export class ProcessorAgent {
     }
 
     return null;
+  }
+
+  private isOutputCompatible(materialKey: string): boolean {
+    const key = (materialKey || "").toLowerCase();
+    if (!key) return false;
+    return (this.profile.output_materials || []).some((output: string) => {
+      const out = output.toLowerCase();
+      return key.includes(out) || out.includes(key);
+    });
+  }
+
+  private isInputCompatible(materialKey: string, expectedInput: string): boolean {
+    const key = (materialKey || "").toLowerCase();
+    const expected = (expectedInput || "").toLowerCase();
+    if (!key || !expected) return false;
+    return key.includes(expected) || expected.includes(key);
   }
 
   /**

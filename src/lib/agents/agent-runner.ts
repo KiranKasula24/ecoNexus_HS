@@ -9,6 +9,7 @@ import { RecyclerAgent } from "./recycler-agent";
 import { ProcessorAgent } from "./processor-agent";
 import { LogisticsAgent } from "./logistics-agent";
 import { SuperAgent } from "./super-agent";
+import { ScoringEngine } from "./scoring-engine";
 type FeedContent = {
   price?: number;
   volume?: number;
@@ -233,20 +234,26 @@ export class AgentRunner {
    * Start negotiation by responding to offer
    */
   private static async startNegotiation(offer: any): Promise<void> {
-    const materialCategory = offer.content.material_category;
+    const materialCategory =
+      offer.content.material_category || offer.content.material || "";
 
-    const { data: interestedAgents } = await supabase
-      .from("agents")
-      .select("*")
-      .eq("agent_type", "specialist_recycler")
-      .eq("status", "active")
-      .neq("id", offer.agent_id);
+    const interestedAgents = await this.findInterestedAgentsForMaterial(
+      materialCategory,
+      offer.agent_id,
+    );
 
     if (!interestedAgents || interestedAgents.length === 0) return;
 
-    const respondingAgent = interestedAgents[0]; // MVP: first match only
+    const respondingAgent = interestedAgents[0];
 
-    const counterPrice = offer.content.price * 1.1;
+    const askingPrice = Number(offer.content.price || 0);
+    if (!askingPrice) return;
+    const counterPrice = ScoringEngine.calculateCounterOffer({
+      original_price: askingPrice,
+      target_price: askingPrice * 1.08,
+      round: 1,
+      max_rounds: 3,
+    });
 
     await supabase.from("agent_feed").insert({
       agent_id: respondingAgent.id,
@@ -329,8 +336,12 @@ export class AgentRunner {
 
     if (!nextAgentId) return;
 
-    // Move 40% toward original price
-    const newPrice = lastPrice + (originalPrice - lastPrice) * 0.4;
+    const newPrice = ScoringEngine.calculateCounterOffer({
+      original_price: lastPrice,
+      target_price: originalPrice,
+      round: roundCount + 1,
+      max_rounds: 3,
+    });
 
     await supabase.from("agent_feed").insert({
       agent_id: nextAgentId,
@@ -349,6 +360,54 @@ export class AgentRunner {
       locality: originalPost.locality,
       visibility: originalPost.visibility,
       is_active: true,
+    });
+  }
+
+  private static async findInterestedAgentsForMaterial(
+    materialCategory: string,
+    excludeAgentId: string,
+  ): Promise<any[]> {
+    const { data: activeAgents } = await supabase
+      .from("agents")
+      .select("*")
+      .eq("status", "active")
+      .neq("id", excludeAgentId);
+
+    if (!activeAgents || activeAgents.length === 0) return [];
+
+    const needle = (materialCategory || "").toLowerCase();
+
+    return activeAgents.filter((agent) => {
+      const constraints = (agent.constraints || {}) as Record<string, any>;
+
+      // Recycler
+      if (agent.agent_type === "specialist_recycler") {
+        const accepted = constraints.accepted_material_categories || [];
+        return (
+          accepted.length === 0 ||
+          accepted.some((c: string) => c.toLowerCase().includes(needle))
+        );
+      }
+
+      // Processor
+      if (agent.agent_type === "specialist_processor") {
+        const inputMaterials = constraints.input_materials || [];
+        return (
+          inputMaterials.length === 0 ||
+          inputMaterials.some((c: string) => c.toLowerCase().includes(needle))
+        );
+      }
+
+      // Local and logistics can still participate
+      if (agent.agent_type === "local" || agent.agent_type === "specialist_logistics") {
+        const categories = constraints.material_categories || [];
+        return (
+          categories.length === 0 ||
+          categories.some((c: string) => c.toLowerCase().includes(needle))
+        );
+      }
+
+      return false;
     });
   }
 

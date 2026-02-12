@@ -5,6 +5,7 @@
  */
 
 import { supabase } from "@/lib/database/supabase";
+import { getMaterialProperties } from "@/lib/constants/material-database";
 
 export interface SymbiosisOpportunity {
   companies: string[];
@@ -154,27 +155,43 @@ export class MultiPartyCoordinator {
 
       // Find matching material
       for (const waste of wasteStreams) {
+        const wasteData = waste as any;
         const matchingReq = requirements.find(
-          (req) => req.material_category === waste.classification,
+          (req) =>
+            this.materialsCompatible(
+              wasteData.material_id ||
+                wasteData.material_subtype ||
+                wasteData.material_category ||
+                wasteData.classification,
+              (req as any).material_id ||
+                (req as any).material_subtype ||
+                req.material_category ||
+                req.material_type,
+            ),
         );
 
         if (matchingReq) {
           // Get passport if exists
-          const passport = Array.isArray(waste.material_passports)
-            ? waste.material_passports[0]
-            : waste.material_passports;
+          const passport = Array.isArray(wasteData.material_passports)
+            ? wasteData.material_passports[0]
+            : wasteData.material_passports;
 
           // Calculate fair price (midpoint between disposal cost savings and virgin material cost)
-          const disposalSavings = waste.current_disposal_cost || 0;
+          const disposalSavings = wasteData.current_disposal_cost || 0;
           const virginCost = matchingReq.cost_per_unit || 100;
           const fairPrice = (disposalSavings + virginCost * 0.8) / 2; // 80% of virgin cost
 
           flows.push({
             seller_company_id: currentCompanyId,
             buyer_company_id: nextCompanyId,
-            material_category: waste.classification,
-            material_subtype: waste.classification,
-            volume: Math.min(waste.monthly_volume, matchingReq.monthly_volume),
+            material_category:
+              wasteData.material_category || wasteData.classification,
+            material_subtype:
+              wasteData.material_subtype || wasteData.classification,
+            volume: Math.min(
+              wasteData.monthly_volume,
+              matchingReq.monthly_volume,
+            ),
             price_per_unit: fairPrice,
             passport_id: passport?.id,
           });
@@ -400,5 +417,23 @@ export class MultiPartyCoordinator {
       .in("status", ["proposed", "partial_approval"]);
 
     return (deals || []) as unknown as MultiPartyDeal[];
+  }
+
+  private static materialsCompatible(a: string, b: string): boolean {
+    const left = (a || "").toLowerCase();
+    const right = (b || "").toLowerCase();
+    if (!left || !right) return false;
+    if (left === right || left.includes(right) || right.includes(left))
+      return true;
+
+    const aProps = getMaterialProperties(left);
+    const bProps = getMaterialProperties(right);
+    if (!aProps || !bProps) return false;
+
+    return (
+      aProps.category === bProps.category ||
+      aProps.subtype === bProps.subtype ||
+      aProps.material_id === bProps.material_id
+    );
   }
 }
