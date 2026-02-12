@@ -5,6 +5,7 @@
  */
 
 import { supabase } from "@/lib/database/supabase";
+import { getMaterialProperties } from "@/lib/constants/material-database";
 import {
   MultiPartyCoordinator,
   SymbiosisOpportunity,
@@ -107,7 +108,11 @@ export class SuperAgent {
           const companyB = flows[j];
 
           const matchingInputB = companyB.inputs.find(
-            (inp: any) => inp.material_category === outputA.material_category,
+            (inp: any) =>
+              this.materialsCompatible(
+                outputA.material_category || outputA.material_type,
+                inp.material_category || inp.material_type,
+              ),
           );
 
           if (!matchingInputB) continue;
@@ -121,7 +126,10 @@ export class SuperAgent {
 
               const matchingInputC = companyC.inputs.find(
                 (inp: any) =>
-                  inp.material_category === outputB.material_category,
+                  this.materialsCompatible(
+                    outputB.material_category || outputB.material_type,
+                    inp.material_category || inp.material_type,
+                  ),
               );
 
               if (!matchingInputC) continue;
@@ -294,5 +302,23 @@ export class SuperAgent {
       `📊 ${this.locality} NexaApex coordinated ${dealsNegotiated} cross-locality deals`,
     );
     return dealsNegotiated;
+  }
+
+  private materialsCompatible(a: string, b: string): boolean {
+    const left = (a || "").toLowerCase();
+    const right = (b || "").toLowerCase();
+    if (!left || !right) return false;
+    if (left === right || left.includes(right) || right.includes(left))
+      return true;
+
+    const aProps = getMaterialProperties(left);
+    const bProps = getMaterialProperties(right);
+    if (!aProps || !bProps) return false;
+
+    return (
+      aProps.category === bProps.category ||
+      aProps.subtype === bProps.subtype ||
+      aProps.material_id === bProps.material_id
+    );
   }
 }

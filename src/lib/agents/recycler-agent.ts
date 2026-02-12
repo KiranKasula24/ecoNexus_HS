@@ -173,7 +173,12 @@ export class RecyclerAgent {
         else if (distance < 500) score += 5;
 
         // Price value (compare to market)
-        const materialProps = getMaterialProperties(content.material_category);
+        const materialProps = getMaterialProperties(
+          content.material_id ||
+            content.sku ||
+            content.material_subtype ||
+            content.material_category,
+        );
         const marketPrice = materialProps?.market_price?.average || 100;
         const askingPrice = content.price || marketPrice;
 
@@ -227,7 +232,12 @@ export class RecyclerAgent {
 
       // Calculate competitive bid
       const content = opp.content;
-      const materialProps = getMaterialProperties(content.material_category);
+      const materialProps = getMaterialProperties(
+        content.material_id ||
+          content.sku ||
+          content.material_subtype ||
+          content.material_category,
+      );
       const marketPrice = materialProps?.market_price?.average || 100;
 
       // Offer above asking price to win bid

@@ -2,6 +2,11 @@
  * COMPREHENSIVE MATERIAL DATABASE
  * Contains reference data for all common materials in circular economy
  */
+import {
+  ALL_MATERIALS,
+  CLASS_METADATA,
+  type MaterialSKU,
+} from "@/lib/constants/materials";
 
 export interface MaterialProperties {
   name: string;
@@ -1362,7 +1367,136 @@ export function getMaterialProperties(
     return categoryMatches[0];
   }
 
+  // SKU catalog fallback (Phase 1: 180 SKUs)
+  const skuMatch = resolveSkuMaterial(materialType);
+  if (skuMatch) {
+    return toMaterialProperties(skuMatch);
+  }
+
   return null;
+}
+
+function resolveSkuMaterial(materialType: string): MaterialSKU | null {
+  const normalized = materialType.toLowerCase().trim();
+  const compact = normalized.replace(/[\s_-]+/g, "");
+
+  const match = ALL_MATERIALS.find((m) => {
+    const id = m.id.toLowerCase();
+    const sku = (m.sku ?? "").toLowerCase();
+    const tradeName = (m.tradeName ?? "").toLowerCase();
+    const ewc = (m.ewcCode ?? "").toLowerCase();
+
+    if (id === normalized || sku === normalized || ewc === normalized)
+      return true;
+    if (id.includes(normalized) || sku.includes(normalized)) return true;
+    if (tradeName.includes(normalized)) return true;
+    if (id.replace(/[.\s_-]+/g, "") === compact) return true;
+    if (sku.replace(/[.\s_-]+/g, "") === compact) return true;
+
+    const altNames = m.alternativeNames || [];
+    return altNames.some((name) => name.toLowerCase().includes(normalized));
+  });
+
+  return match ?? null;
+}
+
+function toMaterialProperties(m: MaterialSKU): MaterialProperties {
+  const classMeta = CLASS_METADATA[m.class as keyof typeof CLASS_METADATA];
+  const basePrice = m.pricing.basePrice;
+  const range = m.pricing.range ?? { min: basePrice, max: basePrice };
+  const marketPrice = {
+    min: range.min ?? basePrice,
+    max: range.max ?? basePrice,
+    average: basePrice,
+    currency: "EUR" as const,
+    last_updated: new Date().toISOString().slice(0, 10),
+  };
+
+  const qualityTiers = (m.qualityTiers || []).map((tier) => ({
+    tier:
+      tier.tier === "Q1"
+        ? 1
+        : tier.tier === "Q2"
+          ? 2
+          : tier.tier === "Q3"
+            ? 3
+            : 4,
+    description: Array.isArray(tier.requirements)
+      ? tier.requirements.join(", ")
+      : String(tier.requirements ?? ""),
+    typical_contamination: tier.contaminationMax ?? 0,
+    price_multiplier: tier.priceMultiplier ?? 1,
+  }));
+
+  const processingDifficulty = (() => {
+    const d = (m.processing?.difficulty || "").toLowerCase();
+    if (d === "easy" || d === "medium" || d === "hard") return d;
+    return "hard";
+  })();
+
+  const mapLevel = (v: string | undefined): "high" | "medium" | "low" => {
+    const x = (v || "").toLowerCase();
+    if (x.includes("very-high") || x === "high") return "high";
+    if (x.includes("very-low") || x === "low") return "low";
+    return "medium";
+  };
+
+  return {
+    name: m.tradeName ?? m.id,
+    material_id: m.id,
+    category: classMeta?.name?.toLowerCase().replace(/\s+/g, "-") || "unknown",
+    subtype: m.subclass || m.id,
+    density: m.specifications?.bulkDensity?.max ?? 1000,
+    typical_forms: Array.isArray(m.specifications?.physicalForm)
+      ? m.specifications.physicalForm
+      : [String(m.specifications?.physicalForm ?? "mixed")],
+    market_price: marketPrice,
+    disposal_cost: {
+      landfill: m.wasteTier === "T4" ? 250 : 100,
+      incineration: m.wasteTier === "T4" ? 200 : 120,
+      recycling: m.wasteTier === "T1" ? -basePrice : -basePrice * 0.5,
+    },
+    carbon_footprint: {
+      virgin_production: m.environmental?.carbonAvoided
+        ? m.environmental.carbonFootprint + m.environmental.carbonAvoided
+        : m.environmental?.carbonFootprint ?? 0,
+      recycling: m.environmental?.carbonFootprint ?? 0,
+      disposal: Math.max(10, (m.environmental?.carbonFootprint ?? 0) * 0.15),
+      transport_per_km: 0.08,
+    },
+    energy_content: 0,
+    recyclability_score: m.environmental?.recyclabilityScore ?? 50,
+    max_recycling_loops: m.environmental?.maxRecycleLoops ?? 1,
+    quality_degradation_per_cycle: 5,
+    processing_difficulty: processingDifficulty,
+    contamination_tolerance: Math.max(
+      ...((m.qualityTiers || []).map((q) => q.contaminationMax || 0).concat(0)),
+    ),
+    sorting_requirements: [],
+    demand_level: mapLevel(m.marketData?.demand),
+    supply_level: mapLevel(m.marketData?.supply),
+    market_volatility:
+      m.marketData?.volatility === "very-high"
+        ? 85
+        : m.marketData?.volatility === "high"
+          ? 70
+          : m.marketData?.volatility === "low"
+            ? 30
+            : m.marketData?.volatility === "very-low"
+              ? 15
+              : 50,
+    quality_tiers:
+      qualityTiers.length > 0
+        ? qualityTiers
+        : [
+            {
+              tier: 2,
+              description: "Standard quality",
+              typical_contamination: 5,
+              price_multiplier: 1,
+            },
+          ],
+  };
 }
 
 /**

@@ -1,0 +1,570 @@
+-- ================================================================
+-- ECONEXUS COMPLETE SEED DATA
+-- 20 companies, all agent types, passports, waste streams,
+-- requirements, profiles — covering every code path
+-- Run in Supabase SQL editor
+-- REPLACE '8321a360-49db-4db6-8473-1df02e2ebfd9' with your actual auth.users id first
+-- ================================================================
+
+-- ================================================================
+-- STEP 1: COMPANIES (7 Munich, 5 Frankfurt, 4 Berlin, 2 Hamburg, 2 Stuttgart)
+-- ================================================================
+INSERT INTO companies (id, user_id, name, industry, entity_type, locality, location, is_setup_complete) VALUES
+
+-- MUNICH (7 companies)
+('c1000001-0000-0000-0000-000000000001','8321a360-49db-4db6-8473-1df02e2ebfd9','ACME Steel Works','metal-manufacturing','manufacturer','munich','{"city":"Munich","country":"Germany","lat":48.1351,"lng":11.5820}',true),
+('c1000002-0000-0000-0000-000000000002','8321a360-49db-4db6-8473-1df02e2ebfd9','BrightPlastics GmbH','plastics','manufacturer','munich','{"city":"Munich","country":"Germany","lat":48.1490,"lng":11.5680}',true),
+('c1000003-0000-0000-0000-000000000003','8321a360-49db-4db6-8473-1df02e2ebfd9','GreenTech Components','electronics','manufacturer','munich','{"city":"Munich","country":"Germany","lat":48.1200,"lng":11.6010}',true),
+('c1000004-0000-0000-0000-000000000004','8321a360-49db-4db6-8473-1df02e2ebfd9','AutoBuild Munich','automotive','manufacturer','munich','{"city":"Munich","country":"Germany","lat":48.1551,"lng":11.5350}',true),
+('c1000005-0000-0000-0000-000000000005','8321a360-49db-4db6-8473-1df02e2ebfd9','EcoRecycle Germany','recycling','recycler','munich','{"city":"Munich","country":"Germany","lat":48.1251,"lng":11.5920}',true),
+('c1000006-0000-0000-0000-000000000006','8321a360-49db-4db6-8473-1df02e2ebfd9','PlasticTransform GmbH','processing','processor','munich','{"city":"Munich","country":"Germany","lat":48.1421,"lng":11.5750}',true),
+('c1000007-0000-0000-0000-000000000007','8321a360-49db-4db6-8473-1df02e2ebfd9','GreenTransport GmbH','logistics','logistics','munich','{"city":"Munich","country":"Germany","lat":48.1300,"lng":11.5900}',true),
+
+-- FRANKFURT (5 companies)
+('c2000001-0000-0000-0000-000000000001','8321a360-49db-4db6-8473-1df02e2ebfd9','Frankfurt Metalworks','metal-manufacturing','manufacturer','frankfurt','{"city":"Frankfurt","country":"Germany","lat":50.1109,"lng":8.6821}',true),
+('c2000002-0000-0000-0000-000000000002','8321a360-49db-4db6-8473-1df02e2ebfd9','PlastForm Industries','plastics','manufacturer','frankfurt','{"city":"Frankfurt","country":"Germany","lat":50.1200,"lng":8.6700}',true),
+('c2000003-0000-0000-0000-000000000003','8321a360-49db-4db6-8473-1df02e2ebfd9','GreenCycle Frankfurt','recycling','recycler','frankfurt','{"city":"Frankfurt","country":"Germany","lat":50.1050,"lng":8.6900}',true),
+('c2000004-0000-0000-0000-000000000004','8321a360-49db-4db6-8473-1df02e2ebfd9','SteelRefinery Frankfurt','processing','processor','frankfurt','{"city":"Frankfurt","country":"Germany","lat":50.1150,"lng":8.6600}',true),
+('c2000005-0000-0000-0000-000000000005','8321a360-49db-4db6-8473-1df02e2ebfd9','EcoLogistics AG','logistics','logistics','frankfurt','{"city":"Frankfurt","country":"Germany","lat":50.1080,"lng":8.6750}',true),
+
+-- BERLIN (4 companies)
+('c3000001-0000-0000-0000-000000000001','8321a360-49db-4db6-8473-1df02e2ebfd9','Berlin Electronics','electronics','manufacturer','berlin','{"city":"Berlin","country":"Germany","lat":52.5200,"lng":13.4050}',true),
+('c3000002-0000-0000-0000-000000000002','8321a360-49db-4db6-8473-1df02e2ebfd9','Cologne Packaging','packaging','manufacturer','berlin','{"city":"Berlin","country":"Germany","lat":52.5100,"lng":13.4150}',true),
+('c3000003-0000-0000-0000-000000000003','8321a360-49db-4db6-8473-1df02e2ebfd9','MetalReborn Berlin','recycling','recycler','berlin','{"city":"Berlin","country":"Germany","lat":52.5300,"lng":13.3950}',true),
+('c3000004-0000-0000-0000-000000000004','8321a360-49db-4db6-8473-1df02e2ebfd9','MetalPurify Berlin','processing','processor','berlin','{"city":"Berlin","country":"Germany","lat":52.5150,"lng":13.4100}',true),
+
+-- HAMBURG (2 companies)
+('c4000001-0000-0000-0000-000000000001','8321a360-49db-4db6-8473-1df02e2ebfd9','Hamburg Shipbuilders','shipbuilding','manufacturer','hamburg','{"city":"Hamburg","country":"Germany","lat":53.5511,"lng":9.9937}',true),
+('c4000002-0000-0000-0000-000000000002','8321a360-49db-4db6-8473-1df02e2ebfd9','CircleWaste Hamburg','recycling','recycler','hamburg','{"city":"Hamburg","country":"Germany","lat":53.5600,"lng":10.0050}',true),
+
+-- STUTTGART (2 companies)
+('c5000001-0000-0000-0000-000000000001','8321a360-49db-4db6-8473-1df02e2ebfd9','Stuttgart Motors','automotive','manufacturer','stuttgart','{"city":"Stuttgart","country":"Germany","lat":48.7758,"lng":9.1829}',true),
+('c5000002-0000-0000-0000-000000000002','8321a360-49db-4db6-8473-1df02e2ebfd9','ReValue Stuttgart','recycling','recycler','stuttgart','{"city":"Stuttgart","country":"Germany","lat":48.7850,"lng":9.1750}',true);
+
+
+-- ================================================================
+-- STEP 2: MATERIAL PASSPORTS (one per waste stream, before waste_streams)
+-- ================================================================
+INSERT INTO material_passports (id, current_owner_company_id, material_category, material_subtype, physical_form, volume, unit, quality_tier, quality_grade, contamination_level, carbon_footprint, verification_status, verification_score, waste_stream_id) VALUES
+
+-- ACME Steel Works passports
+('mp000001-0000-0000-0000-000000000001','c1000001-0000-0000-0000-000000000001','steel-scrap','mild-steel-scrap','solid-pieces',50,'tons',2,'B',5,1.8,'verified',92,NULL),
+('mp000002-0000-0000-0000-000000000002','c1000001-0000-0000-0000-000000000001','aluminum-scrap','6061-aluminum-scrap','shredded',20,'tons',2,'B',8,0.9,'verified',88,NULL),
+
+-- BrightPlastics passports
+('mp000003-0000-0000-0000-000000000003','c1000002-0000-0000-0000-000000000002','plastic-scrap','HDPE-scrap','baled',30,'tons',2,'B',6,2.1,'verified',85,NULL),
+
+-- GreenTech Components passports
+('mp000004-0000-0000-0000-000000000004','c1000003-0000-0000-0000-000000000003','copper-scrap','bare-bright-copper','shredded',8,'tons',1,'A',3,1.2,'verified',96,NULL),
+('mp000005-0000-0000-0000-000000000005','c1000003-0000-0000-0000-000000000003','e-waste','mixed-pcb','loose',12,'tons',3,'C',12,3.5,'pending',70,NULL),
+
+-- AutoBuild Munich passports
+('mp000006-0000-0000-0000-000000000006','c1000004-0000-0000-0000-000000000004','steel-scrap','automotive-steel-scrap','shredded',40,'tons',2,'B',7,1.9,'verified',89,NULL),
+('mp000007-0000-0000-0000-000000000007','c1000004-0000-0000-0000-000000000004','aluminum-scrap','automotive-aluminum','shredded',15,'tons',2,'B',9,1.0,'verified',84,NULL),
+
+-- Frankfurt Metalworks passports
+('mp000008-0000-0000-0000-000000000008','c2000001-0000-0000-0000-000000000001','steel-scrap','structural-steel-scrap','solid-pieces',60,'tons',1,'A',4,1.7,'verified',94,NULL),
+
+-- PlastForm Industries passports
+('mp000009-0000-0000-0000-000000000009','c2000002-0000-0000-0000-000000000002','plastic-scrap','PP-scrap','baled',25,'tons',2,'B',8,2.3,'verified',82,NULL),
+
+-- Berlin Electronics passports
+('mp000010-0000-0000-0000-000000000010','c3000001-0000-0000-0000-000000000001','copper-scrap','insulated-copper-wire','loose',6,'tons',2,'B',5,1.4,'verified',91,NULL),
+('mp000011-0000-0000-0000-000000000011','c3000001-0000-0000-0000-000000000001','e-waste','hard-drives-boards','loose',18,'tons',3,'C',15,4.0,'verified',75,NULL),
+
+-- Cologne Packaging passports
+('mp000012-0000-0000-0000-000000000012','c3000002-0000-0000-0000-000000000002','plastic-scrap','PET-scrap','baled',20,'tons',2,'B',7,2.0,'verified',86,NULL),
+('mp000013-0000-0000-0000-000000000013','c3000002-0000-0000-0000-000000000002','paper-scrap','cardboard-scrap','baled',35,'tons',1,'A',2,0.6,'verified',95,NULL),
+
+-- Hamburg Shipbuilders passports
+('mp000014-0000-0000-0000-000000000014','c4000001-0000-0000-0000-000000000001','steel-scrap','heavy-steel-scrap','solid-pieces',80,'tons',2,'B',6,1.8,'verified',90,NULL),
+
+-- Stuttgart Motors passports
+('mp000015-0000-0000-0000-000000000015','c5000001-0000-0000-0000-000000000001','aluminum-scrap','cast-aluminum-scrap','shredded',25,'tons',2,'B',8,1.1,'verified',87,NULL),
+('mp000016-0000-0000-0000-000000000016','c5000001-0000-0000-0000-000000000001','steel-scrap','press-steel-scrap','shredded',35,'tons',2,'B',5,1.7,'verified',91,NULL);
+
+
+-- ================================================================
+-- STEP 3: WASTE STREAMS (linked to passports — LocalAgent queries this)
+-- potential_value >= 500 required for LocalAgent to post offers
+-- ================================================================
+INSERT INTO waste_streams (id, company_id, material_id, classification, monthly_volume, quality_grade, contamination_level, processability_score, recyclable_score, current_disposal_cost, potential_value, passport_id) VALUES
+
+-- ACME Steel Works
+('ws000001-0000-0000-0000-000000000001','c1000001-0000-0000-0000-000000000001',NULL,'steel-scrap',50,'B',5,85,90,1500,7000,'mp000001-0000-0000-0000-000000000001'),
+('ws000002-0000-0000-0000-000000000002','c1000001-0000-0000-0000-000000000001',NULL,'aluminum-scrap',20,'B',8,80,85,600,3200,'mp000002-0000-0000-0000-000000000002'),
+
+-- BrightPlastics GmbH
+('ws000003-0000-0000-0000-000000000003','c1000002-0000-0000-0000-000000000002',NULL,'plastic-scrap',30,'B',6,75,80,900,2400,'mp000003-0000-0000-0000-000000000003'),
+
+-- GreenTech Components
+('ws000004-0000-0000-0000-000000000004','c1000003-0000-0000-0000-000000000003',NULL,'copper-scrap',8,'A',3,90,95,800,2200,'mp000004-0000-0000-0000-000000000004'),
+('ws000005-0000-0000-0000-000000000005','c1000003-0000-0000-0000-000000000003',NULL,'e-waste',12,'C',12,60,65,600,800,'mp000005-0000-0000-0000-000000000005'),
+
+-- AutoBuild Munich
+('ws000006-0000-0000-0000-000000000006','c1000004-0000-0000-0000-000000000004',NULL,'steel-scrap',40,'B',7,82,88,1200,5600,'mp000006-0000-0000-0000-000000000006'),
+('ws000007-0000-0000-0000-000000000007','c1000004-0000-0000-0000-000000000004',NULL,'aluminum-scrap',15,'B',9,78,83,450,2250,'mp000007-0000-0000-0000-000000000007'),
+
+-- Frankfurt Metalworks
+('ws000008-0000-0000-0000-000000000008','c2000001-0000-0000-0000-000000000001',NULL,'steel-scrap',60,'A',4,88,92,1800,8400,'mp000008-0000-0000-0000-000000000008'),
+
+-- PlastForm Industries
+('ws000009-0000-0000-0000-000000000009','c2000002-0000-0000-0000-000000000002',NULL,'plastic-scrap',25,'B',8,72,78,750,2000,'mp000009-0000-0000-0000-000000000009'),
+
+-- Berlin Electronics
+('ws000010-0000-0000-0000-000000000010','c3000001-0000-0000-0000-000000000001',NULL,'copper-scrap',6,'B',5,88,92,600,1620,'mp000010-0000-0000-0000-000000000010'),
+('ws000011-0000-0000-0000-000000000011','c3000001-0000-0000-0000-000000000001',NULL,'e-waste',18,'C',15,58,62,900,1080,'mp000011-0000-0000-0000-000000000011'),
+
+-- Cologne Packaging
+('ws000012-0000-0000-0000-000000000012','c3000002-0000-0000-0000-000000000002',NULL,'plastic-scrap',20,'B',7,74,79,600,1600,'mp000012-0000-0000-0000-000000000012'),
+('ws000013-0000-0000-0000-000000000013','c3000002-0000-0000-0000-000000000002',NULL,'paper-scrap',35,'A',2,92,96,700,2450,'mp000013-0000-0000-0000-000000000013'),
+
+-- Hamburg Shipbuilders
+('ws000014-0000-0000-0000-000000000014','c4000001-0000-0000-0000-000000000001',NULL,'steel-scrap',80,'B',6,83,89,2400,11200,'mp000014-0000-0000-0000-000000000014'),
+
+-- Stuttgart Motors
+('ws000015-0000-0000-0000-000000000015','c5000001-0000-0000-0000-000000000001',NULL,'aluminum-scrap',25,'B',8,79,84,750,3750,'mp000015-0000-0000-0000-000000000015'),
+('ws000016-0000-0000-0000-000000000016','c5000001-0000-0000-0000-000000000001',NULL,'steel-scrap',35,'B',5,84,90,1050,4900,'mp000016-0000-0000-0000-000000000016');
+
+-- Now update waste_streams to back-link passports to waste_stream_id
+UPDATE material_passports SET waste_stream_id = 'ws000001-0000-0000-0000-000000000001' WHERE id = 'mp000001-0000-0000-0000-000000000001';
+UPDATE material_passports SET waste_stream_id = 'ws000002-0000-0000-0000-000000000002' WHERE id = 'mp000002-0000-0000-0000-000000000002';
+UPDATE material_passports SET waste_stream_id = 'ws000003-0000-0000-0000-000000000003' WHERE id = 'mp000003-0000-0000-0000-000000000003';
+UPDATE material_passports SET waste_stream_id = 'ws000004-0000-0000-0000-000000000004' WHERE id = 'mp000004-0000-0000-0000-000000000004';
+UPDATE material_passports SET waste_stream_id = 'ws000005-0000-0000-0000-000000000005' WHERE id = 'mp000005-0000-0000-0000-000000000005';
+UPDATE material_passports SET waste_stream_id = 'ws000006-0000-0000-0000-000000000006' WHERE id = 'mp000006-0000-0000-0000-000000000006';
+UPDATE material_passports SET waste_stream_id = 'ws000007-0000-0000-0000-000000000007' WHERE id = 'mp000007-0000-0000-0000-000000000007';
+UPDATE material_passports SET waste_stream_id = 'ws000008-0000-0000-0000-000000000008' WHERE id = 'mp000008-0000-0000-0000-000000000008';
+UPDATE material_passports SET waste_stream_id = 'ws000009-0000-0000-0000-000000000009' WHERE id = 'mp000009-0000-0000-0000-000000000009';
+UPDATE material_passports SET waste_stream_id = 'ws000010-0000-0000-0000-000000000010' WHERE id = 'mp000010-0000-0000-0000-000000000010';
+UPDATE material_passports SET waste_stream_id = 'ws000011-0000-0000-0000-000000000011' WHERE id = 'mp000011-0000-0000-0000-000000000011';
+UPDATE material_passports SET waste_stream_id = 'ws000012-0000-0000-0000-000000000012' WHERE id = 'mp000012-0000-0000-0000-000000000012';
+UPDATE material_passports SET waste_stream_id = 'ws000013-0000-0000-0000-000000000013' WHERE id = 'mp000013-0000-0000-0000-000000000013';
+UPDATE material_passports SET waste_stream_id = 'ws000014-0000-0000-0000-000000000014' WHERE id = 'mp000014-0000-0000-0000-000000000014';
+UPDATE material_passports SET waste_stream_id = 'ws000015-0000-0000-0000-000000000015' WHERE id = 'mp000015-0000-0000-0000-000000000015';
+UPDATE material_passports SET waste_stream_id = 'ws000016-0000-0000-0000-000000000016' WHERE id = 'mp000016-0000-0000-0000-000000000016';
+
+
+-- ================================================================
+-- STEP 4: MATERIALS (requirements + inputs — what companies need to BUY)
+-- source_type = 'requirement' triggers LocalAgent buy request posting
+-- ================================================================
+INSERT INTO materials (id, company_id, material_type, material_category, material_subtype, category, source_type, monthly_volume, unit, cost_per_unit) VALUES
+
+-- ACME Steel Works needs recycled steel back
+('m0000001-0000-0000-0000-000000000001','c1000001-0000-0000-0000-000000000001','recycled-steel','recycled-steel','recycled-steel-sheet','circular','requirement',45,'tons',130),
+
+-- BrightPlastics needs recycled plastic
+('m0000002-0000-0000-0000-000000000002','c1000002-0000-0000-0000-000000000002','recycled-plastic','recycled-plastic','recycled-HDPE','circular','requirement',25,'tons',110),
+
+-- GreenTech needs recycled copper and aluminum
+('m0000003-0000-0000-0000-000000000003','c1000003-0000-0000-0000-000000000003','recycled-copper','recycled-copper','refined-copper','circular','requirement',6,'tons',280),
+('m0000004-0000-0000-0000-000000000004','c1000003-0000-0000-0000-000000000003','recycled-aluminum','recycled-aluminum','recycled-6061','circular','requirement',10,'tons',160),
+
+-- AutoBuild Munich needs recycled steel and aluminum
+('m0000005-0000-0000-0000-000000000005','c1000004-0000-0000-0000-000000000004','recycled-steel','recycled-steel','auto-grade-recycled','circular','requirement',40,'tons',125),
+('m0000006-0000-0000-0000-000000000006','c1000004-0000-0000-0000-000000000004','recycled-aluminum','recycled-aluminum','die-cast-aluminum','circular','requirement',12,'tons',165),
+
+-- Frankfurt Metalworks needs steel input
+('m0000007-0000-0000-0000-000000000007','c2000001-0000-0000-0000-000000000001','recycled-steel','recycled-steel','structural-recycled','circular','requirement',55,'tons',128),
+
+-- PlastForm Industries needs recycled plastic
+('m0000008-0000-0000-0000-000000000008','c2000002-0000-0000-0000-000000000002','recycled-plastic','recycled-plastic','recycled-PP','circular','requirement',20,'tons',105),
+
+-- Berlin Electronics needs copper
+('m0000009-0000-0000-0000-000000000009','c3000001-0000-0000-0000-000000000001','recycled-copper','recycled-copper','refined-copper','circular','requirement',5,'tons',275),
+
+-- Cologne Packaging needs recycled paper and plastic
+('m0000010-0000-0000-0000-000000000010','c3000002-0000-0000-0000-000000000002','recycled-plastic','recycled-plastic','recycled-PET','circular','requirement',15,'tons',100),
+('m0000011-0000-0000-0000-000000000011','c3000002-0000-0000-0000-000000000002','recycled-paper','recycled-paper','recycled-cardboard','circular','requirement',30,'tons',80),
+
+-- Hamburg Shipbuilders needs heavy steel
+('m0000012-0000-0000-0000-000000000012','c4000001-0000-0000-0000-000000000001','recycled-steel','recycled-steel','heavy-recycled-steel','circular','requirement',70,'tons',132),
+
+-- Stuttgart Motors needs aluminum and steel
+('m0000013-0000-0000-0000-000000000013','c5000001-0000-0000-0000-000000000001','recycled-aluminum','recycled-aluminum','cast-aluminum-recycled','circular','requirement',20,'tons',168),
+('m0000014-0000-0000-0000-000000000014','c5000001-0000-0000-0000-000000000001','recycled-steel','recycled-steel','press-grade-recycled','circular','requirement',30,'tons',126);
+
+
+-- ================================================================
+-- STEP 5: AGENTS — all types, correct localities
+-- SuperAgent company_id must be nullable — check your schema
+-- If company_id is NOT NULL, point to a dummy recycler or adjust schema
+-- ================================================================
+INSERT INTO agents (id, company_id, name, agent_type, locality, status, geographic_range_km, constraints, performance) VALUES
+
+-- LOCAL AGENTS (manufacturers, 9 agents)
+('ag000001-0000-0000-0000-000000000001','c1000001-0000-0000-0000-000000000001','Nexa-ACME-Steel','local','munich','active',50,
+ '{"min_volume":5,"max_volume":100,"quality_tier_max":3,"material_categories":["steel-scrap","aluminum-scrap"],"price_ranges":{"steel-scrap":{"min":80,"max":145},"aluminum-scrap":{"min":90,"max":185}}}',
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000002-0000-0000-0000-000000000002','c1000002-0000-0000-0000-000000000002','Nexa-BrightPlastics','local','munich','active',50,
+ '{"min_volume":5,"max_volume":80,"quality_tier_max":3,"material_categories":["plastic-scrap"],"price_ranges":{"plastic-scrap":{"min":55,"max":125}}}',
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000003-0000-0000-0000-000000000003','c1000003-0000-0000-0000-000000000003','Nexa-GreenTech','local','munich','active',50,
+ '{"min_volume":3,"max_volume":50,"quality_tier_max":2,"material_categories":["copper-scrap","e-waste"],"price_ranges":{"copper-scrap":{"min":220,"max":360}}}',
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000004-0000-0000-0000-000000000004','c1000004-0000-0000-0000-000000000004','Nexa-AutoBuild','local','munich','active',50,
+ '{"min_volume":10,"max_volume":100,"quality_tier_max":3,"material_categories":["steel-scrap","aluminum-scrap"]}',
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000005-0000-0000-0000-000000000005','c2000001-0000-0000-0000-000000000001','Nexa-FrankfurtMetal','local','frankfurt','active',50,
+ '{"min_volume":10,"max_volume":120,"quality_tier_max":2,"material_categories":["steel-scrap"],"price_ranges":{"steel-scrap":{"min":82,"max":148}}}',
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000006-0000-0000-0000-000000000006','c2000002-0000-0000-0000-000000000002','Nexa-PlastForm','local','frankfurt','active',50,
+ '{"min_volume":5,"max_volume":70,"quality_tier_max":3,"material_categories":["plastic-scrap"]}',
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000007-0000-0000-0000-000000000007','c3000001-0000-0000-0000-000000000001','Nexa-BerlinElec','local','berlin','active',50,
+ '{"min_volume":3,"max_volume":40,"quality_tier_max":2,"material_categories":["copper-scrap","e-waste"]}',
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000008-0000-0000-0000-000000000008','c4000001-0000-0000-0000-000000000001','Nexa-HamburgShip','local','hamburg','active',80,
+ '{"min_volume":20,"max_volume":200,"quality_tier_max":3,"material_categories":["steel-scrap"],"price_ranges":{"steel-scrap":{"min":78,"max":142}}}',
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000009-0000-0000-0000-000000000009','c5000001-0000-0000-0000-000000000001','Nexa-StuttgartMotors','local','stuttgart','active',50,
+ '{"min_volume":10,"max_volume":100,"quality_tier_max":3,"material_categories":["aluminum-scrap","steel-scrap"]}',
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+-- SPECIALIST RECYCLER AGENTS (5 agents — locality = global so they see all)
+('ag000010-0000-0000-0000-000000000010','c1000005-0000-0000-0000-000000000005','NexaPrime-EcoRecycle','specialist_recycler','global','active',500,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000011-0000-0000-0000-000000000011','c2000003-0000-0000-0000-000000000003','NexaPrime-GreenCycle','specialist_recycler','global','active',500,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000012-0000-0000-0000-000000000012','c3000003-0000-0000-0000-000000000003','NexaPrime-MetalReborn','specialist_recycler','global','active',500,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000013-0000-0000-0000-000000000013','c4000002-0000-0000-0000-000000000002','NexaPrime-CircleWaste','specialist_recycler','global','active',500,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000014-0000-0000-0000-000000000014','c5000002-0000-0000-0000-000000000002','NexaPrime-ReValue','specialist_recycler','global','active',500,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+-- SPECIALIST PROCESSOR AGENTS (3 agents)
+('ag000015-0000-0000-0000-000000000015','c1000006-0000-0000-0000-000000000006','NexaPrime-PlasticTransform','specialist_processor','regional','active',200,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000016-0000-0000-0000-000000000016','c2000004-0000-0000-0000-000000000004','NexaPrime-SteelRefinery','specialist_processor','regional','active',200,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000017-0000-0000-0000-000000000017','c3000004-0000-0000-0000-000000000004','NexaPrime-MetalPurify','specialist_processor','regional','active',200,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+-- SPECIALIST LOGISTICS AGENTS (2 agents)
+('ag000018-0000-0000-0000-000000000018','c1000007-0000-0000-0000-000000000007','NexaPrime-GreenTransport','specialist_logistics','regional','active',400,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}'),
+
+('ag000019-0000-0000-0000-000000000019','c2000005-0000-0000-0000-000000000005','NexaPrime-EcoLogistics','specialist_logistics','regional','active',400,NULL,
+ '{"opportunities_scanned":0,"deals_proposed":0,"deals_approved":0,"deals_rejected":0,"success_rate":0}');
+
+-- SUPER AGENTS — if company_id is NOT NULL in your schema, 
+-- point them to any company and handle in code, otherwise use NULL
+INSERT INTO agents (id, company_id, name, agent_type, locality, status, geographic_range_km) VALUES
+('ag000020-0000-0000-0000-000000000020','c1000005-0000-0000-0000-000000000005','NexaApex-Munich','super','munich','active',150),
+('ag000021-0000-0000-0000-000000000021','c2000003-0000-0000-0000-000000000003','NexaApex-Frankfurt','super','frankfurt','active',150),
+('ag000022-0000-0000-0000-000000000022','c3000003-0000-0000-0000-000000000003','NexaApex-Berlin','super','berlin','active',150);
+
+
+-- ================================================================
+-- STEP 6: RECYCLER PROFILES (RecyclerAgent reads this directly)
+-- ================================================================
+INSERT INTO recycler_profiles (company_id, accepted_material_categories, processing_capacity_tons_month, current_utilization_percentage, min_pickup_volume_tons, geographic_service_area, max_contamination_tolerance, buy_prices_per_ton, processing_methods, is_setup_complete) VALUES
+
+('c1000005-0000-0000-0000-000000000005',
+ ARRAY['steel-scrap','aluminum-scrap','copper-scrap','e-waste'],
+ 500, 60, 5, 'Germany',
+ 15,
+ '{"steel-scrap":95,"aluminum-scrap":155,"copper-scrap":295,"e-waste":55}',
+ ARRAY['shredding','sorting','smelting'],
+ true),
+
+('c2000003-0000-0000-0000-000000000003',
+ ARRAY['plastic-scrap','paper-scrap','e-waste'],
+ 300, 50, 8, 'Germany',
+ 12,
+ '{"plastic-scrap":75,"paper-scrap":55,"e-waste":50}',
+ ARRAY['baling','sorting','granulating'],
+ true),
+
+('c3000003-0000-0000-0000-000000000003',
+ ARRAY['steel-scrap','aluminum-scrap','copper-scrap'],
+ 400, 55, 5, 'Germany',
+ 10,
+ '{"steel-scrap":92,"aluminum-scrap":158,"copper-scrap":298}',
+ ARRAY['shredding','sorting','smelting'],
+ true),
+
+('c4000002-0000-0000-0000-000000000002',
+ ARRAY['plastic-scrap','rubber-scrap'],
+ 200, 45, 10, 'Northern Germany',
+ 18,
+ '{"plastic-scrap":72,"rubber-scrap":45}',
+ ARRAY['baling','granulating'],
+ true),
+
+('c5000002-0000-0000-0000-000000000002',
+ ARRAY['steel-scrap','aluminum-scrap','e-waste'],
+ 250, 40, 8, 'Southern Germany',
+ 15,
+ '{"steel-scrap":90,"aluminum-scrap":152,"e-waste":48}',
+ ARRAY['shredding','sorting'],
+ true);
+
+
+-- ================================================================
+-- STEP 7: PROCESSOR PROFILES (ProcessorAgent reads this directly)
+-- ================================================================
+INSERT INTO processor_profiles (company_id, processing_services, input_materials, output_materials, processing_capacity_tons_month, current_utilization_percentage, processing_fee_per_ton, output_quality_guarantee, geographic_service_area, is_setup_complete) VALUES
+
+-- PlasticTransform: plastic-scrap → recycled-plastic
+('c1000006-0000-0000-0000-000000000006',
+ ARRAY['sorting','granulating','pelletizing'],
+ ARRAY['plastic-scrap'],
+ ARRAY['recycled-plastic'],
+ 200, 40,
+ '{"sorting":30,"granulating":55,"pelletizing":75}',
+ '{"quality_tier":2,"contamination_max":5,"certification":"ISO14001"}',
+ 'Southern Germany',
+ true),
+
+-- SteelRefinery: steel-scrap → recycled-steel
+('c2000004-0000-0000-0000-000000000004',
+ ARRAY['sorting','smelting','rolling'],
+ ARRAY['steel-scrap'],
+ ARRAY['recycled-steel'],
+ 400, 50,
+ '{"sorting":25,"smelting":80,"rolling":95}',
+ '{"quality_tier":1,"contamination_max":3,"certification":"ISO9001"}',
+ 'Central Germany',
+ true),
+
+-- MetalPurify: copper-scrap + aluminum-scrap → recycled-copper + recycled-aluminum
+('c3000004-0000-0000-0000-000000000004',
+ ARRAY['sorting','smelting','refining'],
+ ARRAY['copper-scrap','aluminum-scrap'],
+ ARRAY['recycled-copper','recycled-aluminum'],
+ 150, 35,
+ '{"sorting":30,"smelting":90,"refining":110}',
+ '{"quality_tier":1,"contamination_max":2,"certification":"ISO14001"}',
+ 'Eastern Germany',
+ true);
+
+
+-- ================================================================
+-- STEP 8: LOGISTICS PROFILES (LogisticsAgent reads this directly)
+-- ================================================================
+INSERT INTO logistics_profiles (company_id, vehicle_types, service_regions, base_rate_per_ton_km, minimum_load_tons, available_capacity_tons_week, consolidation_discount_percentage, accepts_backhaul, current_routes, is_setup_complete) VALUES
+
+('c1000007-0000-0000-0000-000000000007',
+ ARRAY['flatbed','curtainsider','tipper'],
+ ARRAY['munich','frankfurt','stuttgart','nuremberg'],
+ 0.14,
+ 5, 80, 18, true,
+ '[{"from":"munich","to":"frankfurt","frequency":"3x_week","capacity_remaining":20},{"from":"munich","to":"stuttgart","frequency":"daily","capacity_remaining":15}]',
+ true),
+
+('c2000005-0000-0000-0000-000000000005',
+ ARRAY['flatbed','tanker','curtainsider'],
+ ARRAY['frankfurt','cologne','dusseldorf','berlin'],
+ 0.15,
+ 8, 100, 15, true,
+ '[{"from":"frankfurt","to":"berlin","frequency":"2x_week","capacity_remaining":30},{"from":"frankfurt","to":"cologne","frequency":"daily","capacity_remaining":25}]',
+ true);
+
+
+-- ================================================================
+-- STEP 9: SEED INITIAL AGENT FEED POSTS
+-- These simulate the state after 1-2 cron cycles have run
+-- Gives demo something alive to show immediately
+-- ================================================================
+
+-- A: Manufacturers posting OFFERS (their waste, with passport references)
+INSERT INTO agent_feed (id, agent_id, post_type, content, locality, visibility, is_active, created_at) VALUES
+
+-- ACME steel offer
+('fp000001-0000-0000-0000-000000000001','ag000001-0000-0000-0000-000000000001','offer',
+ '{"passport_id":"mp000001-0000-0000-0000-000000000001","material":"steel-scrap","material_category":"steel-scrap","material_subtype":"mild-steel-scrap","quality_tier":2,"volume":50,"unit":"tons","price":110,"processability_score":85,"recyclable_score":90,"location":{"lat":48.1351,"lng":11.582},"tags":["steel-scrap","tier-2","munich"]}',
+ 'munich','local',true, NOW() - INTERVAL '25 minutes'),
+
+-- BrightPlastics plastic offer
+('fp000002-0000-0000-0000-000000000002','ag000002-0000-0000-0000-000000000002','offer',
+ '{"passport_id":"mp000003-0000-0000-0000-000000000003","material":"plastic-scrap","material_category":"plastic-scrap","material_subtype":"HDPE-scrap","quality_tier":2,"volume":30,"unit":"tons","price":78,"processability_score":75,"recyclable_score":80,"location":{"lat":48.149,"lng":11.568},"tags":["plastic-scrap","HDPE","munich"]}',
+ 'munich','local',true, NOW() - INTERVAL '22 minutes'),
+
+-- GreenTech copper offer (high value)
+('fp000003-0000-0000-0000-000000000003','ag000003-0000-0000-0000-000000000003','offer',
+ '{"passport_id":"mp000004-0000-0000-0000-000000000004","material":"copper-scrap","material_category":"copper-scrap","material_subtype":"bare-bright-copper","quality_tier":1,"volume":8,"unit":"tons","price":290,"processability_score":90,"recyclable_score":95,"location":{"lat":48.12,"lng":11.601},"tags":["copper-scrap","tier-1","premium"]}',
+ 'munich','local',true, NOW() - INTERVAL '18 minutes'),
+
+-- AutoBuild steel offer
+('fp000004-0000-0000-0000-000000000004','ag000004-0000-0000-0000-000000000004','offer',
+ '{"passport_id":"mp000006-0000-0000-0000-000000000006","material":"steel-scrap","material_category":"steel-scrap","material_subtype":"automotive-steel-scrap","quality_tier":2,"volume":40,"unit":"tons","price":105,"processability_score":82,"recyclable_score":88,"location":{"lat":48.1551,"lng":11.535},"tags":["steel-scrap","automotive","munich"]}',
+ 'munich','local',true, NOW() - INTERVAL '15 minutes'),
+
+-- Frankfurt Metalworks steel offer (high quality tier 1!)
+('fp000005-0000-0000-0000-000000000005','ag000005-0000-0000-0000-000000000005','offer',
+ '{"passport_id":"mp000008-0000-0000-0000-000000000008","material":"steel-scrap","material_category":"steel-scrap","material_subtype":"structural-steel-scrap","quality_tier":1,"volume":60,"unit":"tons","price":118,"processability_score":88,"recyclable_score":92,"location":{"lat":50.1109,"lng":8.6821},"tags":["steel-scrap","tier-1","frankfurt"]}',
+ 'frankfurt','local',true, NOW() - INTERVAL '20 minutes'),
+
+-- PlastForm plastic offer
+('fp000006-0000-0000-0000-000000000006','ag000006-0000-0000-0000-000000000006','offer',
+ '{"passport_id":"mp000009-0000-0000-0000-000000000009","material":"plastic-scrap","material_category":"plastic-scrap","material_subtype":"PP-scrap","quality_tier":2,"volume":25,"unit":"tons","price":74,"processability_score":72,"recyclable_score":78,"location":{"lat":50.12,"lng":8.67},"tags":["plastic-scrap","PP","frankfurt"]}',
+ 'frankfurt','local',true, NOW() - INTERVAL '17 minutes'),
+
+-- Berlin Electronics copper offer
+('fp000007-0000-0000-0000-000000000007','ag000007-0000-0000-0000-000000000007','offer',
+ '{"passport_id":"mp000010-0000-0000-0000-000000000010","material":"copper-scrap","material_category":"copper-scrap","material_subtype":"insulated-copper-wire","quality_tier":2,"volume":6,"unit":"tons","price":260,"processability_score":88,"recyclable_score":92,"location":{"lat":52.52,"lng":13.405},"tags":["copper-scrap","berlin"]}',
+ 'berlin','local',true, NOW() - INTERVAL '12 minutes'),
+
+-- Hamburg Shipbuilders big steel offer
+('fp000008-0000-0000-0000-000000000008','ag000008-0000-0000-0000-000000000008','offer',
+ '{"passport_id":"mp000014-0000-0000-0000-000000000014","material":"steel-scrap","material_category":"steel-scrap","material_subtype":"heavy-steel-scrap","quality_tier":2,"volume":80,"unit":"tons","price":112,"processability_score":83,"recyclable_score":89,"location":{"lat":53.5511,"lng":9.9937},"tags":["steel-scrap","heavy","hamburg"]}',
+ 'hamburg','local',true, NOW() - INTERVAL '30 minutes'),
+
+
+-- B: Manufacturers posting BUY REQUESTS (no local offers found yet)
+INSERT INTO agent_feed (id, agent_id, post_type, content, locality, visibility, is_active, created_at) VALUES
+
+-- AutoBuild wants recycled aluminum (can't find locally)
+('fp000009-0000-0000-0000-000000000009','ag000004-0000-0000-0000-000000000004','request',
+ '{"material_category":"recycled-aluminum","volume_needed":12,"max_price":168,"quality_tier_max":3,"location":{"lat":48.1551,"lng":11.535}}',
+ 'munich','local',true, NOW() - INTERVAL '14 minutes'),
+
+-- ACME wants recycled steel
+('fp000010-0000-0000-0000-000000000010','ag000001-0000-0000-0000-000000000001','request',
+ '{"material_category":"recycled-steel","volume_needed":45,"max_price":132,"quality_tier_max":2,"location":{"lat":48.1351,"lng":11.582}}',
+ 'munich','local',true, NOW() - INTERVAL '13 minutes'),
+
+-- Frankfurt Metalworks wants recycled steel
+('fp000011-0000-0000-0000-000000000011','ag000005-0000-0000-0000-000000000005','request',
+ '{"material_category":"recycled-steel","volume_needed":55,"max_price":130,"quality_tier_max":2,"location":{"lat":50.1109,"lng":8.6821}}',
+ 'frankfurt','local',true, NOW() - INTERVAL '10 minutes'),
+
+-- Stuttgart Motors wants recycled aluminum
+('fp000012-0000-0000-0000-000000000012','ag000009-0000-0000-0000-000000000009','request',
+ '{"material_category":"recycled-aluminum","volume_needed":20,"max_price":170,"quality_tier_max":3,"location":{"lat":48.7758,"lng":9.1829}}',
+ 'stuttgart','local',true, NOW() - INTERVAL '8 minutes'),
+
+
+-- C: Recyclers posting standing GLOBAL BUY requests
+INSERT INTO agent_feed (id, agent_id, post_type, content, locality, visibility, is_active, created_at) VALUES
+
+('fp000013-0000-0000-0000-000000000013','ag000010-0000-0000-0000-000000000010','request',
+ '{"material_category":"steel-scrap","volume_needed":999999,"max_price":95,"quality_tier_max":3,"min_volume":5,"service_area":"Germany","location":{"lat":48.1351,"lng":11.592}}',
+ 'global','public',true, NOW() - INTERVAL '2 hours'),
+
+('fp000014-0000-0000-0000-000000000014','ag000010-0000-0000-0000-000000000010','request',
+ '{"material_category":"copper-scrap","volume_needed":999999,"max_price":295,"quality_tier_max":3,"min_volume":3,"service_area":"Germany","location":{"lat":48.1351,"lng":11.592}}',
+ 'global','public',true, NOW() - INTERVAL '2 hours'),
+
+('fp000015-0000-0000-0000-000000000015','ag000011-0000-0000-0000-000000000011','request',
+ '{"material_category":"plastic-scrap","volume_needed":999999,"max_price":78,"quality_tier_max":3,"min_volume":8,"service_area":"Germany","location":{"lat":50.1109,"lng":8.6821}}',
+ 'global','public',true, NOW() - INTERVAL '90 minutes'),
+
+('fp000016-0000-0000-0000-000000000016','ag000012-0000-0000-0000-000000000012','request',
+ '{"material_category":"aluminum-scrap","volume_needed":999999,"max_price":158,"quality_tier_max":3,"min_volume":5,"service_area":"Germany","location":{"lat":52.52,"lng":13.405}}',
+ 'global','public',true, NOW() - INTERVAL '90 minutes'),
+
+('fp000017-0000-0000-0000-000000000017','ag000014-0000-0000-0000-000000000014','request',
+ '{"material_category":"e-waste","volume_needed":999999,"max_price":48,"quality_tier_max":4,"min_volume":5,"service_area":"Southern Germany","location":{"lat":48.7758,"lng":9.1829}}',
+ 'global','public',true, NOW() - INTERVAL '60 minutes'),
+
+
+-- D: Processors posting service OFFERS
+INSERT INTO agent_feed (id, agent_id, post_type, content, locality, visibility, is_active, created_at) VALUES
+
+('fp000018-0000-0000-0000-000000000018','ag000015-0000-0000-0000-000000000015','offer',
+ '{"service_type":"pelletizing","input_materials":["plastic-scrap"],"output_materials":["recycled-plastic"],"capacity_available":120,"processing_fee":75,"turnaround_days":7,"quality_guarantee":{"quality_tier":2,"contamination_max":5}}',
+ 'regional','public',true, NOW() - INTERVAL '3 hours'),
+
+('fp000019-0000-0000-0000-000000000019','ag000016-0000-0000-0000-000000000016','offer',
+ '{"service_type":"smelting","input_materials":["steel-scrap"],"output_materials":["recycled-steel"],"capacity_available":200,"processing_fee":80,"turnaround_days":5,"quality_guarantee":{"quality_tier":1,"contamination_max":3}}',
+ 'regional','public',true, NOW() - INTERVAL '3 hours'),
+
+('fp000020-0000-0000-0000-000000000020','ag000017-0000-0000-0000-000000000017','offer',
+ '{"service_type":"refining","input_materials":["copper-scrap","aluminum-scrap"],"output_materials":["recycled-copper","recycled-aluminum"],"capacity_available":100,"processing_fee":110,"turnaround_days":10,"quality_guarantee":{"quality_tier":1,"contamination_max":2}}',
+ 'regional','public',true, NOW() - INTERVAL '3 hours'),
+
+
+-- E: Logistics posting consolidation & backhaul offers
+INSERT INTO agent_feed (id, agent_id, post_type, content, locality, visibility, is_active, created_at) VALUES
+
+('fp000021-0000-0000-0000-000000000021','ag000018-0000-0000-0000-000000000018','announcement',
+ '{"type":"consolidation_opportunity","route":"munich-frankfurt","origin":"munich","destination":"frankfurt","total_volume":35,"num_shipments":2,"consolidated_rate":0.115,"estimated_savings":1050,"deal_ids":[]}',
+ 'munich','regional',true, NOW() - INTERVAL '45 minutes'),
+
+('fp000022-0000-0000-0000-000000000022','ag000019-0000-0000-0000-000000000019','offer',
+ '{"type":"backhaul_offer","route":"frankfurt-berlin return trip","available_capacity":20,"rate":0.08,"departure_window":"next week","discount_reason":"backhaul optimization"}',
+ 'regional','public',true, NOW() - INTERVAL '40 minutes'),
+
+
+-- F: Active negotiations already in progress (threads)
+-- Thread 1: EcoRecycle bidding on ACME steel (rounds in progress)
+INSERT INTO agent_feed (id, agent_id, post_type, parent_id, thread_root_id, content, locality, visibility, is_active, created_at) VALUES
+
+('fp000023-0000-0000-0000-000000000023','ag000010-0000-0000-0000-000000000010','reply',
+ 'fp000001-0000-0000-0000-000000000001','fp000001-0000-0000-0000-000000000001',
+ '{"message":"We are interested in your steel-scrap. Pickup included.","counter_offer":{"price":98,"volume":50,"terms":"Pickup included, payment on delivery"},"interest_level":"high"}',
+ 'munich','local',true, NOW() - INTERVAL '20 minutes'),
+
+('fp000024-0000-0000-0000-000000000024','ag000001-0000-0000-0000-000000000001','reply',
+ 'fp000023-0000-0000-0000-000000000023','fp000001-0000-0000-0000-000000000001',
+ '{"message":"Counter-offer round 2","counter_offer":{"price":105,"volume":50,"terms":"30 days payment"},"interest_level":"medium"}',
+ 'munich','local',true, NOW() - INTERVAL '18 minutes'),
+
+-- Thread 2: MetalReborn bidding on Frankfurt steel (nearly converged)
+('fp000025-0000-0000-0000-000000000025','ag000012-0000-0000-0000-000000000012','reply',
+ 'fp000005-0000-0000-0000-000000000005','fp000005-0000-0000-0000-000000000005',
+ '{"message":"Interested in structural steel. High-grade material.","counter_offer":{"price":108,"volume":60,"terms":"Pickup included"},"interest_level":"high"}',
+ 'frankfurt','local',true, NOW() - INTERVAL '16 minutes'),
+
+('fp000026-0000-0000-0000-000000000026','ag000005-0000-0000-0000-000000000005','reply',
+ 'fp000025-0000-0000-0000-000000000025','fp000005-0000-0000-0000-000000000005',
+ '{"message":"Counter-offer round 2","counter_offer":{"price":114,"volume":60,"terms":"30 days payment"},"interest_level":"medium"}',
+ 'frankfurt','local',true, NOW() - INTERVAL '14 minutes'),
+
+('fp000027-0000-0000-0000-000000000027','ag000012-0000-0000-0000-000000000012','reply',
+ 'fp000026-0000-0000-0000-000000000026','fp000005-0000-0000-0000-000000000005',
+ '{"message":"Counter-offer round 3","counter_offer":{"price":116,"volume":60,"terms":"Pickup included, net30"},"interest_level":"high"}',
+ 'frankfurt','local',true, NOW() - INTERVAL '12 minutes'),
+
+-- Thread 3: GreenCycle bidding on BrightPlastics plastic scrap
+('fp000028-0000-0000-0000-000000000028','ag000011-0000-0000-0000-000000000011','reply',
+ 'fp000002-0000-0000-0000-000000000002','fp000002-0000-0000-0000-000000000002',
+ '{"message":"We need HDPE scrap for granulating. Competitive offer.","counter_offer":{"price":72,"volume":30,"terms":"Pickup within 48h"},"interest_level":"high"}',
+ 'munich','local',true, NOW() - INTERVAL '15 minutes'),
+
+('fp000029-0000-0000-0000-000000000029','ag000002-0000-0000-0000-000000000002','reply',
+ 'fp000028-0000-0000-0000-000000000028','fp000002-0000-0000-0000-000000000002',
+ '{"message":"Counter-offer round 2","counter_offer":{"price":76,"volume":30,"terms":"30 days payment"},"interest_level":"medium"}',
+ 'munich','local',true, NOW() - INTERVAL '12 minutes'),
+
+
+-- G: NexaApex Announcements (symbiosis + cross-locality)
+INSERT INTO agent_feed (id, agent_id, post_type, content, locality, visibility, is_active, created_at) VALUES
+
+('fp000030-0000-0000-0000-000000000030','ag000020-0000-0000-0000-000000000020','announcement',
+ '{"type":"symbiosis_detected","title":"Circular Opportunity: 3-Way Symbiosis","description":"ACME Steel Works → PlasticTransform GmbH → BrightPlastics can create a circular material flow","companies_involved":["ACME Steel Works","PlasticTransform GmbH","BrightPlastics GmbH"],"company_ids":["c1000001-0000-0000-0000-000000000001","c1000006-0000-0000-0000-000000000006","c1000002-0000-0000-0000-000000000002"],"estimated_value":180000,"carbon_saved":450,"annual_volume":360,"priority":"high"}',
+ 'munich','local',true, NOW() - INTERVAL '5 minutes'),
+
+('fp000031-0000-0000-0000-000000000031','ag000021-0000-0000-0000-000000000021','announcement',
+ '{"type":"cross_locality_opportunity","title":"Export Opportunity: steel-scrap","description":"Berlin needs 55 tons/month of steel-scrap. NexaApex negotiated deal at €118/ton.","destination_locality":"berlin","volume":55,"price":118,"annual_value":77880,"role":"supplier"}',
+ 'frankfurt','local',true, NOW() - INTERVAL '3 minutes'),
+
+('fp000032-0000-0000-0000-000000000032','ag000020-0000-0000-0000-000000000020','announcement',
+ '{"type":"cross_locality_opportunity","title":"Import Opportunity: recycled-aluminum","description":"Stuttgart has 25 tons/month surplus aluminum-scrap. NexaApex negotiated supply at €162/ton (including transport).","source_locality":"stuttgart","volume":25,"price":162,"annual_value":48600,"role":"buyer"}',
+ 'munich','local',true, NOW() - INTERVAL '2 minutes');
+
+
+-- ================================================================
+-- STEP 10: UPDATE REPLY COUNTS on parent posts
+-- ================================================================
+UPDATE agent_feed SET reply_count = 2 WHERE id = 'fp000001-0000-0000-0000-000000000001';
+UPDATE agent_feed SET reply_count = 3 WHERE id = 'fp000005-0000-0000-0000-000000000005';
+UPDATE agent_feed SET reply_count = 2 WHERE id = 'fp000002-0000-0000-0000-000000000002';

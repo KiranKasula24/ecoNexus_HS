@@ -71,17 +71,28 @@ export class OpportunityScanner {
     const content = post.content;
 
     // Extract key data
+    const materialKey =
+      content.material_id ||
+      content.sku ||
+      content.material_subtype ||
+      content.material_category ||
+      content.material ||
+      "";
     const material_category =
-      content.material_category || content.material || "";
-    const material_subtype = content.material_subtype || content.material || "";
+      content.material_category || content.material || materialKey;
+    const material_subtype =
+      content.material_subtype || content.material || materialKey;
     const volume = content.volume || content.volume_needed || 0;
     const price = content.price || content.max_price || 0;
     const quality_tier = content.quality_tier || content.quality_tier_max || 2;
 
     if (!material_category || volume === 0) return null;
 
-    // Get material properties for reference
-    const materialProps = getMaterialProperties(material_category);
+    // Get material properties for reference (SKU-aware via material-database fallback)
+    const materialProps =
+      getMaterialProperties(materialKey) ||
+      getMaterialProperties(material_subtype) ||
+      getMaterialProperties(material_category);
     if (!materialProps) return null;
 
     // Initialize score
@@ -97,7 +108,7 @@ export class OpportunityScanner {
     }
 
     // FACTOR 2: Price Attractiveness (0-35 points)
-    const marketPrice = materialProps.market_price.average;
+    const marketPrice = materialProps.market_price.average || 1;
 
     if (post.post_type === "offer") {
       // Buying: Lower price is better
@@ -132,11 +143,12 @@ export class OpportunityScanner {
     }
 
     // FACTOR 3: Quality (0-25 points)
-    const qualityScore = (5 - quality_tier) * 6.25; // Tier 1 = 25pts, Tier 4 = 6.25pts
+    const clampedTier = Math.min(4, Math.max(1, Number(quality_tier) || 2));
+    const qualityScore = (5 - clampedTier) * 6.25; // Tier 1 = 25pts, Tier 4 = 6.25pts
     score += qualityScore;
-    if (quality_tier === 1) {
+    if (clampedTier === 1) {
       reasons.push("Premium quality (Tier 1)");
-    } else if (quality_tier === 2) {
+    } else if (clampedTier === 2) {
       reasons.push("Good quality (Tier 2)");
     }
 
@@ -174,11 +186,15 @@ export class OpportunityScanner {
       reasons.push("High contamination level");
     }
 
-    // FACTOR 7: Processability (bonus points)
+    // FACTOR 7: Processability + market demand (bonus points)
     const processability = content.processability_score || 0;
     if (processability > 80) {
       score += 5;
       reasons.push("High processability");
+    }
+    if (materialProps.demand_level === "high") {
+      score += 4;
+      reasons.push("Strong demand profile");
     }
 
     // Cap score at 100

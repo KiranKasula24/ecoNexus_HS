@@ -83,10 +83,11 @@ export class LocalAgent {
     let posted = 0;
 
     for (const waste of wasteStreams) {
+      const wasteData = waste as any;
       // Check if already posted
-      const passportId = Array.isArray(waste.material_passports)
-        ? waste.material_passports[0]?.id
-        : waste.material_passports?.id;
+      const passportId = Array.isArray(wasteData.material_passports)
+        ? wasteData.material_passports[0]?.id
+        : wasteData.material_passports?.id;
 
       const { data: existingPost } = await supabase
         .from("agent_feed")
@@ -100,11 +101,16 @@ export class LocalAgent {
       if (existingPost) continue;
 
       // Calculate asking price from material database
-      const materialProps = getMaterialProperties(waste.classification);
+      const materialKey =
+        wasteData.material_id ||
+        wasteData.material_subtype ||
+        wasteData.material_category ||
+        wasteData.classification;
+      const materialProps = getMaterialProperties(materialKey);
       const basePrice = materialProps?.market_price?.average || 100;
       const qualityMultiplier =
         materialProps?.quality_tiers?.find(
-          (t) => t.tier === Number(waste.quality_grade),
+          (t) => t.tier === Number(wasteData.quality_grade),
         )?.price_multiplier || 1;
 
       const askingPrice = basePrice * qualityMultiplier;
@@ -115,16 +121,22 @@ export class LocalAgent {
         post_type: "offer",
         content: {
           passport_id: passportId,
-          material: waste.classification,
-          material_category: waste.classification,
-          quality_tier: waste.quality_grade,
-          volume: waste.monthly_volume,
+          material_id: wasteData.material_id || null,
+          material: wasteData.classification,
+          material_category:
+            wasteData.material_category || wasteData.classification,
+          material_subtype:
+            wasteData.material_subtype ||
+            wasteData.classification ||
+            "unspecified",
+          quality_tier: wasteData.quality_grade,
+          volume: wasteData.monthly_volume,
           unit: "tons",
           price: askingPrice,
-          processability_score: waste.processability_score,
-          recyclable_score: waste.recyclable_score,
+          processability_score: wasteData.processability_score,
+          recyclable_score: wasteData.recyclable_score,
           location: { lat: 0, lng: 0 }, // TODO: Get from company
-          tags: [waste.classification, `tier-${waste.quality_grade}`],
+          tags: [wasteData.classification, `tier-${wasteData.quality_grade}`],
         },
         locality: this.locality,
         visibility: "local",
@@ -155,6 +167,7 @@ export class LocalAgent {
     let posted = 0;
 
     for (const req of requirements) {
+      const reqData = req as any;
       // STEP 1: Search existing offers first
       const { data: existingOffers } = await supabase
         .from("agent_feed")
@@ -163,7 +176,7 @@ export class LocalAgent {
         .eq("locality", this.locality)
         .eq("is_active", true)
         // FIX 2b: Use .contains for broader JSON matching or .filter for exact
-        .contains("content", { material_category: req.material_category });
+        .contains("content", { material_category: reqData.material_category });
 
       if (existingOffers && existingOffers.length > 0) {
         // Found existing offers - respond directly instead of posting request
@@ -177,16 +190,21 @@ export class LocalAgent {
         .eq("agent_id", this.agentId)
         .eq("post_type", "request")
         // FIX 2c: Use .filter for JSONB path
-        .filter("content->>material_category", "eq", req.material_category)
+        .filter("content->>material_category", "eq", reqData.material_category)
         .eq("is_active", true)
         .single();
 
       if (existingRequest) continue; // Already posted
 
-      const materialProps = getMaterialProperties(req.material_type);
+      const materialKey =
+        reqData.material_id ||
+        reqData.material_subtype ||
+        reqData.material_category ||
+        reqData.material_type;
+      const materialProps = getMaterialProperties(materialKey);
       const maxPrice =
-        (req.material_category &&
-          this.constraints.price_ranges?.[req.material_category]?.max) ||
+        (reqData.material_category &&
+          this.constraints.price_ranges?.[reqData.material_category]?.max) ||
         materialProps?.market_price?.average ||
         150;
 
@@ -194,8 +212,8 @@ export class LocalAgent {
         agent_id: this.agentId,
         post_type: "request",
         content: {
-          material_category: req.material_category,
-          volume_needed: req.monthly_volume,
+          material_category: reqData.material_category,
+          volume_needed: reqData.monthly_volume,
           max_price: maxPrice,
           quality_tier_max: this.constraints.quality_tier_max || 3,
           location: { lat: 0, lng: 0 },

@@ -505,7 +505,7 @@ function RecyclerSetup() {
 
       await supabase
         .from("companies")
-        .update({ is_setup_complete: true })
+        .update({is_setup_complete: true })
         .eq("id", company.id);
 
       // Update agent status to active
